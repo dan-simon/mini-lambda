@@ -4,7 +4,13 @@
 
 This guide aims to explain the small functional programming language Mini-Lambda so that the reader can read and write code in the language and understand some of its theoretical underpinnings. Mini-Lambda is not meant for practical use.
 
-#### Syntax
+#### Basic Information
+
+Mini-Lambda is the typed lambda calculus with a few additions. These additions, while they are helpful, are not strong enough to make it Turing complete.
+
+Mini-Lambda uses strict evaluation, not lazy evaluation. Thus, for example, even if a function is constant, its argument (if it has one) will still be evaluated.
+
+#### Syntax and Semantics
 
 ###### Numbers and Variables
 
@@ -174,6 +180,18 @@ The product type can be thought of as an and type. It contains both a left value
 Note: This function constructs a product type directly from two values. The use of $ could be any value; the choice of $ is insignificant.
 
 #### Example Programs
+
+Ackermann function:
+
+(\` (^ (f y -> ^ f y (f 1))) s)
+
+or
+
+(\` (^ (f -> \` (^ f) (f 1))) s)
+
+or
+
+(\` (^ (ψ (. \` ^) (\` $ 1))) s)
 
 Program to compute the largest prime factor of a number:
 
