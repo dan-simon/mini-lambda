@@ -106,10 +106,10 @@ Note: ψ, κ, and $ can be combined to remove all lambda expressions from any ex
 
 (remove n) for n a number or variable is n
 (remove (f x)) is ((remove f) (remove x))
-remove of (x -> n) for n a number or variable other than x is (κ n)
-remove of (x -> x) is $
-remove of (x -> (f y)) is (ψ (remove (x -> f)) (remove (x -> y)))
-remove of (x -> (y -> e)) is (remove (x -> (remove (y -> e))))
+(remove (x -> n)) for n a number or variable other than x is (κ n)
+(remove (x -> x)) is $
+(remove (x -> (f y))) is (ψ (remove (x -> f)) (remove (x -> y)))
+(remove (x -> (y -> e))) is (remove (x -> (remove (y -> e))))
 
 Note that remove is not built into the language.
 
@@ -172,3 +172,17 @@ The product type can be thought of as an and type. It contains both a left value
 \*\&\* = (x y -> <&> (κ x) (κ y) $)
 
 Note: This function constructs a product type directly from two values. The use of $ could be any value; the choice of $ is insignificant.
+
+#### Example Programs
+
+Program to compute the largest prime factor of a number:
+
+(. <& (n -> ^ (x -> d (\*\&\* (. <& &> x) (\*\&\* (. <& &> x) (while (. (> (. &> &> x)) (* (. <& &> x))) s (. &> &> x) 0))) (\*\&\* (<& x) (\*\&\* (s (. <& &> x)) (. &> &> x))) (^ (y -> d 0 (s y) (v (- (. <& &> x) y))) (. &> &> x) 0)) n (\*\&\* 0 (\*\&\* 2 n))))
+
+### Exercises
+
+1. Someone wants to implement v by using while, specifically:
+
+v = (x -> while (y -> (< (s y) x)) s x 0)
+
+Will this work? Why or why not?
