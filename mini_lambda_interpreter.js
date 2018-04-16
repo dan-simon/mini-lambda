@@ -748,6 +748,30 @@ var print_type_tree = (function () {
   }
 })();
 
+// value to string
+
+var value_string = function (x) {
+  if (Array.isArray(x)) {
+    if (x.length !== 2) {
+      throw 'Implementation error!';
+    } else {
+      return '(*&* ' + value_string(x[0]) + ' ' + value_string(x[1]) + ')';
+    }
+  } else if (typeof x === 'function') {
+    return '[function]';
+  } else if (typeof x === 'number') {
+    return x.toString();
+  } else if (typeof x !== 'object' || !x) {
+    throw 'Implementation error!';
+  } else if ('left' in x) {
+    return '(<| ' + value_string(x.left) + ')'
+  } else if ('right' in x) {
+    return '(|> ' + value_string(x.right) + ')'
+  } else {
+    throw 'Implementation error!';
+  }
+}
+
 // the glue function
 
 var execute = function (x) {
@@ -760,7 +784,8 @@ var execute = function (x) {
   // you can change, but this line does do something
   // and does not print
   print_type_tree('reset');
-  return [print_type_tree(h), calculate(tree)];
+  var c = calculate(tree);
+  return [print_type_tree(h), value_string(c), c];
 }
 
 // what we allow outside access to

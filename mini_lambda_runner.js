@@ -10,9 +10,9 @@ var main = function () {
   stdin.addListener('data', function (d) {
     d = d.toString().slice(0, -1);
     try {
-			var [type, value] = execute(d);
+			var [type, value_string, real_value] = execute(d);
     	console.log(type);
-			console.log(value);
+			console.log(value_string);
     } catch (e) {
     	console.log('There was an exception:');
     	console.log(e);
