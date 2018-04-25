@@ -1,8 +1,13 @@
 var main = function () {
-	var input = document.getElementById('a').value;
+	let input = document.getElementById('a').value;
 	try {
-		var e = execute(input);
-		document.getElementById('c').innerHTML = e[0] + '<br/>' + e[1];
+		document.getElementById('c').innerHTML = '';
+		for (let i of input.split('\n')) {
+			let e = execute(i);
+			if (e !== null) {
+				document.getElementById('c').innerHTML += e[0] + '<br/>' + e[1] + '<br/>';
+			}
+		}
 	} catch (e) {
 		document.getElementById('c').innerHTML = 'Error!<br/>' + e;
 	}

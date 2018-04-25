@@ -16,7 +16,7 @@ Mini-Lambda uses strict evaluation, not lazy evaluation. Thus, for example, even
 
 Mini-Lambda has only non-negative integers as numbers (0, 1, 2, ...). In particular, it does not have negative numbers or fractions. Ideally, numbers should be of arbitrary precision and size.
 
-Mini-Lambda has a very permissive syntax for variables. A variable is basically anything nonempty without spaces or parenthesis other than numbers and the arrow ->. Variables are, of course, immutable.
+Mini-Lambda has a very permissive syntax for variables. A variable is basically anything nonempty without spaces or parenthesis other than numbers and the arrow ->. Variables are, of course, immutable. Note that \\ in variables is completely ignored; any occurrences of it are removed, so \\+\\ is the same as +.
 
 ###### Function Application and Lambda Expressions
 
@@ -37,6 +37,24 @@ Lambda expressions form functions. The behavior of these functions is defined by
 ((x1 x2 ... xn -> e) y1 y2 ... yn)
 
 being the value of e with any occurrences of the variables x1, ..., xn replaced by y1, ..., yn respectively. For example, ((x y -> y) 2 3) is 3. Note that in the degenerate case where the lambda expression starts with an arrow, the value of the lambda expression is simply its value with the arrow removed, so, for example, (-> 5) is 5. Note also that a variable used in one lambda expression cannot be used in another inside of that one, so, for example, (x -> (x -> 2)) will throw an error.
+
+Variables before -> in lambda expressions can be put inside parentheses, even nested parentheses; as long as the parentheses match, this has no impact on the evaluation of the expression. For example, (x (y z) -> x (y z)), ((((x y)) (z)) -> x (y z)), and (x y z -> x (y z)) all evaluate to the same function. Note, however, that although (\\x y -> y x) and ((x y) -> y x) are both legal and the same as (x y -> y x), (\\(x y) -> y x) will throw an error.
+
+###### Variable Creation
+
+New variables can be created via the syntax
+
+var = value
+
+New variables cannot have the same name as existing variables or be used in their own definition. Variables cannot be defined within other expressions. Note that this is allowed:
+
+x = (x -> + x x)
+
+This will make x be the doubling function.
+
+###### Special cases
+
+Empty lines are ignored, as are lines beginning with #. Lines beginning with @ may have some special effect. If they do not, an error should be thrown. Lines containing but not beginning with @ or # should be allowed and handled normally.
 
 #### s and ^
 
@@ -151,7 +169,37 @@ Note: This function actually takes four arguments. It repeatedly applies its sec
 
 (while (> 100) s 500 5) is 100.
 
-#### Sum and Product types
+% = (x y -> (^ (z -> d (s z) 0 (= (s z) y)) x 0))
+
+Note: This function returns its first argument modulo its second. If the second argument is 0, it just returns the first argument.
+
+/ = (x y -> v (while (. (>= x) (* y)) s (s x) 0))
+
+Note: This function returns its first argument divided by its second, rounded down (remember that Mini-Lambda has no fractions). If its second argument is 0, it just returns the first argument. Note that (x y -> while (. (> x) (* y)) s x 0) does division rounded up, otherwise behaving the same (in particular, it is the same when there is no remainder).
+
+$$ = $
+
+Note: This function is always the same as $ in eventual behavior, but is different in terms of time use. $$, if its argument is a function, memoizes it; that is, if it gets an input that is not a function, it stores the output, and next time that input it given, the output will be returned almost immediately. If $$ is given an argument that is not a function, including an argument that contains a function, it returns it with no changes. Also, if $$ is given a function that returns a function, it will only cache the partially applied results, as would be expected.
+
+An example of when to use this function is in calculating the Fibonacci sequence. On the usual interpreter,
+
+((y -> ^ (f -> $$ (x -> d 1 (+ (f (- x 1)) (f (- x 2))) (> x 2))) y $ y) 1000)
+
+(to get the thousandth Fibonacci number) returns the answer almost immediately, but
+
+((y -> ^ (f -> (x -> d 1 (+ (f (- x 1)) (f (- x 2))) (> x 2))) y $ y) 25)
+
+(to get the 25th Fibonacci number) takes a few seconds.
+
+#### Sum and Product Types
+
+###### Sum and product types abstractly
+
+Types can be thought of as collections of values. A sum type (| a b) (this is not code, just type notation) has a value of either a value in type a or a value in type b. A value of type a can clearly be converted into a value of type (| a b), as can a value of type b. However, there is not always a clear way to convert a value of type (| a b) to a value of type a (or, for that matter, to a value of type b).
+
+A product type (& a b) has a value containing both a value in type a and a value in type b. From a value of type (& a b) it is clearly possible to get a value of type a, and also clearly possible to get a value of type b. However, given only a value of type a, or only a value of type b, there is no clear way to get a value of type (& a b). (In fact, theoretically (though not in Mini-Lambda) there might be empty types with no values, and if b were such an empty type and a were not there would clearly be no values of type (& a b), and thus there would be no functions from type a to type (& a b).)
+
+Why are these called the sum and product types? Because, if types were to have finite numbers of values (which, in Mini-Lambda, none do), the number of values of type (| a b) would be the number of values of type a plus the number of values of type b, and the number of values of type (& a b) would be the number of values of type a times the number of values of type b. (Of course, there is no function to get the number of values of a type, so this would not help in adding and multiplying numbers.)
 
 ###### Sum type
 
@@ -161,7 +209,7 @@ The sum type is defined by three functions <|, |>, and <|>, obeying the followin
 
 (<|> f g (|> x)) = (g x)
 
-The sum type can be thought of as an or type. It can either be a left value (created by <|) or a right value (created by |>). <|>, given two functions f and g, applies one to a value of a sum type x, returning (f y) if x is a left value (<| y) and (g y) if x is a right value (|> y)
+The sum type can either be a left value (created by <|) or a right value (created by |>). <|>, given two functions f and g, applies one to a value of a sum type x, returning (f y) if x is a left value (<| y) and (g y) if x is a right value (|> y).
 
 ###### Product type
 
@@ -171,13 +219,25 @@ The product type is defined by three functions <&, &>, and <&>, obeying the foll
 
 (&> (<&> f g x)) = (g x)
 
-The product type can be thought of as an and type. It contains both a left value (extracted by <&) and a right value (extracted by &>). <&>, given two functions f and g, applies both to a single value x to create a value of a product type, the left value of which is (f x) and the right value of which is (g x).
+The product type contains both a left value (extracted by <&) and a right value (extracted by &>). <&>, given two functions f and g, applies both to a single value x to create a value of a product type, the left value of which is (f x) and the right value of which is (g x).
 
 #### Further Definitions
 
+/|/ = (f g -> <|> (. <| f) (. |> g))
+
+Note: This function applies one of two functions to a value of a sum type depending upon whether it it a left (f) or right (g) value, but then makes the result of the function applied either a right or left value depending on which its input was.
+
+\*\|\* = (x y -> <|> (κ x) (κ y))
+
+Note: This function takes three arguments and returns x if its third argument is a left value and y if it is a right value.
+
+/&/ = (f g -> <&> (. f <&) (. g &>))
+
+Note: This function applies f to the left value of a value of a product type, g to the right value, and then returns the value of a product type containing both.
+
 \*\&\* = (x y -> <&> (κ x) (κ y) $)
 
-Note: This function constructs a product type directly from two values. The use of $ could be any value; the choice of $ is insignificant.
+Note: This function constructs a value of a product type directly from two values. The use of $ could be any value; the choice of $ is insignificant.
 
 #### Example Programs
 
@@ -195,7 +255,13 @@ or
 
 Program to compute the largest prime factor of a number:
 
-(. <& (n -> ^ (x -> d (\*\&\* (. <& &> x) (\*\&\* (. <& &> x) (while (. (> (. &> &> x)) (* (. <& &> x))) s (. &> &> x) 0))) (\*\&\* (<& x) (\*\&\* (s (. <& &> x)) (. &> &> x))) (^ (y -> d 0 (s y) (v (- (. <& &> x) y))) (. &> &> x) 0)) n (\*\&\* 0 (\*\&\* 2 n))))
+(. <& (n -> ^ (x -> d (\*\&\* (. <& &> x) (\*\&\* (. <& &> x) (/ (. &> &> x) (. <& &> x)))) (\*\&\* (<& x) (\*\&\* (s (. <& &> x)) (. &> &> x))) (% (. &> &> x) (. <& &> x))) n (\*\&\* 0 (\*\&\* 2 n))))
+
+#### Other Information
+
+###### Optimizations
+
+Optimization in writing a compiler or interpreter is permitted and indeed encouraged, but not required. It is typical to implement builtins more efficiently (that is, not directly in terms of their definitions). Cacheing even without $$ is also allowed.
 
 ### Exercises
 
@@ -204,3 +270,13 @@ Program to compute the largest prime factor of a number:
 v = (x -> while (y -> (< (s y) x)) s x 0)
 
 Will this work? Why or why not?
+
+2. Consider the sequence of functions (.), (. .), (. . .), etc. Are all these functions well-typed? Are they all the same after some point? If so, what do they "converge" to? Can we generate them with (n -> ^ . n $)?
+
+3. How might you represent a finite list of numbers in Mini-Lambda? How would you get the last item of such a list, or concatenate two such lists? What might be the use of cacheing in the implementation?
+
+4. Can you use a product type of two numbers in the definition of v rather than a function? How about a sum type of two numbers?
+
+5. Using just lambda expressions, 0, s, and ^, what is the shortest program you can write to calculate a number at least 2 ** 1024 (the classical number size limit)?
+
+6. How would you define bitwise operators on numbers in Mini-Lambda? Is there a limit to how efficiently you can do such operations?

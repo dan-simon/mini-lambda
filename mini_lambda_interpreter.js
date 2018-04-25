@@ -8,9 +8,11 @@
 // plus either and tuple types
 
 var commands = ['s', '$', '.', '`', '^', 'v', '+', '*', '-',
-'<', '=', '>', '|', '&', '!', 'd', 'κ', 'ψ',
-'min', 'max', 'bool', '<=', '>=', '**', 'while',
-'<|', '|>', '<|>', '<&', '&>', '<&>', '*&*'];
+'<', '=', '>', '|', '&', '!', 'd', 'κ', 'ψ', '$$',
+'min', 'max', 'bool', '<=', '>=', '**', 'while', '%', '/',
+'<|', '|>', '<|>', '<&', '&>', '<&>', '/|/', '*|*', '/&/', '*&*'];
+
+var extra_commands = [];
 
 // a helpful function
 
@@ -46,19 +48,15 @@ var copy_d = function (d) {
 
 // parsing code
 
-var parse = function (input) {
-  if (input.length === 0) {
-    throw 'Parsing error!';
-  }
-  if (input.length === 1 && commands.indexOf(input) !== -1) {
-    return input;
-  } else if (is_number(input)) {
+var parse = function (input, var_alter) {
+  if (is_number(input)) {
     return parseInt(input, 10);
   } else if (!(input.startsWith('(') && input.endsWith(')'))) {
     if (input.match(/[() ]/)) {
-      throw 'Parsing error!';
+      throw 'Invalid variable parsing error!';
     }
-    return input;
+    // Dealing with a bare variable or a command.
+    return var_alter(input);
   } else {
     var parts = break_up(input.slice(1, -1));
     var lambda_loc = parts.lastIndexOf('->');
@@ -79,13 +77,13 @@ var parse = function (input) {
     if (lambda_bit.length % 2 === 0 && lambda_bit.length > 0) {
       throw 'Parsing error!';
     }
-    var result = parse_result_from(parts);
-    var vars = get_vars_from(lambda_bit);
+    var result = parse_result_from(parts, var_alter);
+    var vars = get_vars_from(lambda_bit, var_alter);
     return lambda_embed(vars, nest(result));
   }
 }
 
-var get_vars_from = function (parts) {
+var get_vars_from = function (parts, var_alter) {
   if (parts.length === 0) {
     return [];
   }
@@ -93,21 +91,21 @@ var get_vars_from = function (parts) {
   for (var i = 0; i < parts.length; i++) {
     if (i % 2 === 0) {
       if (parts[i] === ' ') {
-        throw 'Parsing error!';
+        throw 'Extra whitespace parsing error!';
       }
       if (parts[i] !== '->') {
         if (parts[i][0] === '(') {
           var p = parse_result_from_no_nest(break_up(parts[i].slice(1, -1)));
           for (var j = 0; j < p.length; j++) {
-            result.push(p[j]);
+            result.push(var_alter(p[j]));
           }
         } else {
-          result.push(parts[i]);
+          result.push(var_alter(parts[i]));
         }
       }
     } else {
       if (parts[i] !== ' ') {
-        throw 'Parsing error!';
+        throw 'Not enough whitespace parsing error!';
       }
     }
   }
@@ -122,14 +120,14 @@ var lambda_embed = function (vars, body) {
 }
 
 var make_parse_result_f = function (f) {
-  return function (parts) {
+  return function (parts, passed) {
     var result = [];
     for (var i = 0; i < parts.length; i++) {
       if (i % 2 === 0) {
-        result.push(f(parts[i]));
+        result.push(f(parts[i], passed));
       } else {
         if (parts[i] !== ' ') {
-          throw 'Parsing error!';
+          throw 'Not enough whitespace parsing error!';
         }
       }
     }
@@ -139,7 +137,29 @@ var make_parse_result_f = function (f) {
 
 var parse_result_from = make_parse_result_f(parse);
 
-var parse_result_from_no_nest = make_parse_result_f(function (x) {return x});
+var parse_result_from_no_nest = function (parts) {
+  var result = [];
+  for (var i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      if (parts[i].match(/[() ]/)) {
+        if (parts[i][0] !== '(') {
+          throw 'Invalid variable parsing error!';
+        }
+        var rec = parse_result_from_no_nest(break_up(parts[i].slice(1, -1)));
+        for (var j = 0; j < rec.length; j++) {
+          result.push(rec[j]);
+        }
+      } else {
+        result.push(parts[i]);
+      }
+    } else {
+      if (parts[i] !== ' ') {
+        throw 'Not enough whitespace parsing error!';
+      }
+    }
+  }
+  return result;
+}
 
 var nest = function (l) {
   var r = l[0];
@@ -161,7 +181,7 @@ var break_up = function (s) {
       result[result.length - 1].push('(');
     } else if (s[i] === ')') {
       if (depth === 0){
-        throw 'Parsing error!';
+        throw 'Too many close parentheses parsing error!';
       }
       depth--;
       result[result.length - 1].push(')');
@@ -182,7 +202,7 @@ var break_up = function (s) {
     }
   }
   if (depth !== 0){
-    throw 'Parsing error!';
+    throw 'Too many open parentheses parsing error!';
   }
   return result.map(function (x) {return x.join('')});
 }
@@ -305,6 +325,8 @@ var types = {
   '*': ['%', ['%', '%']],
   '**': ['%', ['%', '%']],
   '-': ['%', ['%', '%']],
+  '%': ['%', ['%', '%']],
+  '/': ['%', ['%', '%']],
   '<': ['%', ['%', '%']],
   '>': ['%', ['%', '%']],
   '=': ['%', ['%', '%']],
@@ -318,12 +340,16 @@ var types = {
   'd': ['a', ['a', ['%', 'a']]],
   'κ': ['a', ['b', 'a']],
   'ψ': [['a', ['b', 'c']], [['a', 'b'], ['a', 'c']]],
+  '$$': ['a', 'a'],
   '<|': ['a', ['|', 'a', 'b']],
   '|>': ['b', ['|', 'a', 'b']],
   '<|>': [['a', 'c'], [['b', 'c'], [['|', 'a', 'b'], 'c']]],
   '<&': [['&', 'a', 'b'], 'a'],
   '&>': [['&', 'a', 'b'], 'b'],
   '<&>': [['c', 'a'], [['c', 'b'], ['c', ['&', 'a', 'b']]]],
+  '/|/': [['a', 'b'], [['c', 'd'], [['|', 'a', 'c'], ['|', 'b', 'd']]]],
+  '*|*': ['a', ['a', [['|', 'b', 'c'], 'a']]],
+  '/&/': [['a', 'b'], [['c', 'd'], [['&', 'a', 'c'], ['&', 'b', 'd']]]],
   '*&*': ['a', ['b', ['&', 'a', 'b']]]
 }
 
@@ -529,6 +555,24 @@ var fns = {
       }
     }
   },
+  '%': function (x) {
+    return function (y) {
+      if (y === 0) {
+        return x;
+      } else {
+        return x % y;
+      }
+    }
+  },
+  '/': function (x) {
+    return function (y) {
+      if (y === 0) {
+        return x;
+      } else {
+        return Math.floor(x / y);
+      }
+    }
+  },
   'd': function (x) {
     return function (y) {
       return function (z) {
@@ -549,6 +593,24 @@ var fns = {
     return function (y) {
       return function (z) {
         return x(z)(y(z));
+      }
+    }
+  },
+  '$$': function (x) {
+    var c = {};
+    if (typeof x !== 'function') {
+      return x;
+    } else {
+      return function (y) {
+        var v = value_string(y);
+        if (v.indexOf('function') === -1) {
+          if (!(v in c)) {
+            c[v] = x(y);
+          }
+          return c[v];
+        } else {
+          return x(y);
+        }
       }
     }
   },
@@ -694,6 +756,39 @@ var fns = {
       }
     }
   },
+  '/|/': function (f) {
+    return function (g) {
+      return function (x) {
+        if ('left' in x) {
+          return {'left': f(x.left)};
+        } else if ('right' in x) {
+          return {'right': g(x.right)};
+        } else {
+          throw 'Implementation error!';
+        }
+      }
+    }
+  },
+  '*|*': function (x) {
+    return function (y) {
+      return function (z) {
+        if ('left' in z) {
+          return x;
+        } else if ('right' in z) {
+          return y;
+        } else {
+          throw 'Implementation error!';
+        }
+      }
+    }
+  },
+  '/&/': function (f) {
+    return function (g) {
+      return function (x) {
+        return [f(x[0]), g(x[1])];
+      }
+    }
+  },
   '*&*': function (x) {
     return function (y) {
       return [x, y];
@@ -772,10 +867,70 @@ var value_string = function (x) {
   }
 }
 
+// postprocess variables
+
+var process_var = function (x) {
+  var ret = x.replace(/\\/g, '');
+  if (ret.length === 0) {
+    throw 'Empty variable parsing error!';
+  }
+  return ret;
+}
+
+// declaration
+
+var declaration = function (x) {
+  if (x.indexOf(' ') > -1 && x[0] !== '(') {
+    var p = break_up(x);
+    if (p.length !== 5) {
+      throw 'Invalid declaration!';
+    }
+    if (p[0].match(/[() ]/) || p[0] === ' ' || p[1] !== ' ' || p[2] !== '=' || p[3] !== ' ') {
+      throw 'Invalid declaration!';
+    }
+    if (commands.indexOf(p[0]) > -1) {
+      throw 'Name ' + p[0] + ' already used!';
+    }
+    return [p[0], p[4]];
+  } else {
+    return false;
+  }
+}
+
 // the glue function
 
+var rec_rem_star = function (x) {
+  if (Array.isArray(x)) {
+    return x.map(rec_rem_star);
+  } else {
+    return x.replace(/[*]/g, '');
+  }
+}
+
 var execute = function (x) {
-  var tree = parse(x);
+  if (x === '' || x[0] === '#') {
+    return null;
+  }
+  if (x[0] === '@') {
+    if (x === '@clear') {
+      while (extra_commands.length > 0) {
+        var rem_command = extra_commands.pop();
+        commands.pop();
+        delete types[rem_command];
+        delete fns[rem_command];
+      }
+    } else {
+      throw 'Unrecognized directive ' + x + '!';
+    }
+    return null;
+  }
+  var name = null;
+  var d = declaration(x);
+  if (d) {
+    name = d[0];
+    x = d[1];
+  }
+  var tree = parse(x, process_var);
   check_vars(tree, commands_set(), {'->': true});
   tree = transpile_lambdas(tree);
   var g = get_type_tree(tree, '*', {});
@@ -785,6 +940,12 @@ var execute = function (x) {
   // and does not print
   print_type_tree('reset');
   var c = calculate(tree);
+  if (name) {
+    commands.push(name);
+    extra_commands.push(name);
+    types[name] = rec_rem_star(h);
+    fns[name] = c;
+  }
   return [print_type_tree(h), value_string(c), c];
 }
 
