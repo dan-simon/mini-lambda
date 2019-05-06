@@ -1,24 +1,24 @@
-## A Guide to Mini-Lambda
+# A Guide to Mini-Lambda
 
-#### Introduction
+## Introduction
 
 This guide aims to explain the small functional programming language Mini-Lambda so that the reader can read and write code in the language and understand some of its theoretical underpinnings. Mini-Lambda is not meant for practical use.
 
-#### Basic Information
+## Basic Information
 
 Mini-Lambda is the typed lambda calculus with a few additions. These additions, while they are helpful, are not strong enough to make it Turing complete.
 
 Mini-Lambda uses strict evaluation, not lazy evaluation. Thus, for example, even if a function is constant, its argument (if it has one) will still be evaluated.
 
-#### Syntax and Semantics
+## Syntax and Semantics
 
-###### Numbers and Variables
+### Numbers and Variables
 
 Mini-Lambda has only non-negative integers as numbers (0, 1, 2, ...). In particular, it does not have negative numbers or fractions. Ideally, numbers should be of arbitrary precision and size.
 
 Mini-Lambda has a very permissive syntax for variables. A variable is basically anything nonempty without spaces or parenthesis other than numbers and the arrow ->. Variables are, of course, immutable. Note that \\ in variables is completely ignored; any occurrences of it are removed, so \\+\\ is the same as +.
 
-###### Function Application and Lambda Expressions
+### Function Application and Lambda Expressions
 
 Function application of a function f (which may be a number (although this is nonsensical and will throw an error; a number cannot be used as a function), a variable, another function application, or a lambda expression) to a value x (which may be a number, variable, another function application, or a lambda expression) uses the following syntax:
 
@@ -40,7 +40,7 @@ being the value of e with any occurrences of the variables x1, ..., xn replaced 
 
 Variables before -> in lambda expressions can be put inside parentheses, even nested parentheses; as long as the parentheses match, this has no impact on the evaluation of the expression. For example, (x (y z) -> x (y z)), ((((x y)) (z)) -> x (y z)), and (x y z -> x (y z)) all evaluate to the same function. Note, however, that although (\\x y -> y x) and ((x y) -> y x) are both legal and the same as (x y -> y x), (\\(x y) -> y x) will throw an error.
 
-###### Variable Creation
+### Variable Creation
 
 New variables can be created via the syntax
 
@@ -52,17 +52,17 @@ x = (x -> + x x)
 
 This will make x be the doubling function.
 
-###### Special cases
+### Special cases
 
 Empty lines are ignored, as are lines beginning with #. Lines beginning with @ may have some special effect. If they do not, an error should be thrown. Lines containing but not beginning with @ or # should be allowed and handled normally.
 
-#### s and ^
+## s and ^
 
 (s x) is x + 1 for any number x. For any other x, a typechecking error will be thrown.
 
 (^ f n x) is x if n = 0 and (f (^ f m x)) where m = n - 1 if n > 0. If n is not a number, a typechecking error will be thrown.
 
-#### Definitions
+## Definitions
 
 $ = (x -> x)
 
@@ -191,9 +191,9 @@ An example of when to use this function is in calculating the Fibonacci sequence
 
 (to get the 25th Fibonacci number) takes a few seconds.
 
-#### Sum and Product Types
+## Sum and Product Types
 
-###### Sum and product types abstractly
+### Sum and product types abstractly
 
 Types can be thought of as collections of values. A sum type (| a b) (this is not code, just type notation) has a value of either a value in type a or a value in type b. A value of type a can clearly be converted into a value of type (| a b), as can a value of type b. However, there is not always a clear way to convert a value of type (| a b) to a value of type a (or, for that matter, to a value of type b).
 
@@ -201,7 +201,7 @@ A product type (& a b) has a value containing both a value in type a and a value
 
 Why are these called the sum and product types? Because, if types were to have finite numbers of values (which, in Mini-Lambda, none do), the number of values of type (| a b) would be the number of values of type a plus the number of values of type b, and the number of values of type (& a b) would be the number of values of type a times the number of values of type b. (Of course, there is no function to get the number of values of a type, so this would not help in adding and multiplying numbers.)
 
-###### Sum type
+### Sum type
 
 The sum type is defined by three functions <|, |>, and <|>, obeying the following laws:
 
@@ -211,7 +211,7 @@ The sum type is defined by three functions <|, |>, and <|>, obeying the followin
 
 The sum type can either be a left value (created by <|) or a right value (created by |>). <|>, given two functions f and g, applies one to a value of a sum type x, returning (f y) if x is a left value (<| y) and (g y) if x is a right value (|> y).
 
-###### Product type
+### Product type
 
 The product type is defined by three functions <&, &>, and <&>, obeying the following laws:
 
@@ -221,7 +221,7 @@ The product type is defined by three functions <&, &>, and <&>, obeying the foll
 
 The product type contains both a left value (extracted by <&) and a right value (extracted by &>). <&>, given two functions f and g, applies both to a single value x to create a value of a product type, the left value of which is (f x) and the right value of which is (g x).
 
-#### Further Definitions
+## Further Definitions
 
 /|/ = (f g -> <|> (. <| f) (. |> g))
 
@@ -239,7 +239,7 @@ Note: This function applies f to the left value of a value of a product type, g 
 
 Note: This function constructs a value of a product type directly from two values. The use of $ could be any value; the choice of $ is insignificant.
 
-#### Example Programs
+## Example Programs
 
 Ackermann function:
 
@@ -257,26 +257,26 @@ Program to compute the largest prime factor of a number:
 
 (. <& (n -> ^ (x -> d (\*\&\* (. <& &> x) (\*\&\* (. <& &> x) (/ (. &> &> x) (. <& &> x)))) (\*\&\* (<& x) (\*\&\* (s (. <& &> x)) (. &> &> x))) (% (. &> &> x) (. <& &> x))) n (\*\&\* 0 (\*\&\* 2 n))))
 
-#### Other Information
+## Other Information
 
-###### Optimizations
+### Optimizations
 
 Optimization in writing a compiler or interpreter is permitted and indeed encouraged, but not required. It is typical to implement builtins more efficiently (that is, not directly in terms of their definitions). Cacheing even without $$ is also allowed.
 
 ### Exercises
 
-1. Someone wants to implement v by using while, specifically:
+Exercise 1. Someone wants to implement v by using while, specifically:
 
 v = (x -> while (y -> (< (s y) x)) s x 0)
 
 Will this work? Why or why not?
 
-2. Consider the sequence of functions (.), (. .), (. . .), etc. Are all these functions well-typed? Are they all the same after some point? If so, what do they "converge" to? Can we generate them with (n -> ^ . n $)?
+Exercise 2. Consider the sequence of functions (.), (. .), (. . .), etc. Are all these functions well-typed? Are they all the same after some point? If so, what do they "converge" to? Can we generate them with (n -> ^ . n $)?
 
-3. How might you represent a finite list of numbers in Mini-Lambda? How would you get the last item of such a list, or concatenate two such lists? What might be the use of cacheing in the implementation?
+Exercise 3. How might you represent a finite list of numbers in Mini-Lambda? How would you get the last item of such a list, or concatenate two such lists? What might be the use of cacheing in the implementation?
 
-4. Can you use a product type of two numbers in the definition of v rather than a function? How about a sum type of two numbers?
+Exercise 4. Can you use a product type of two numbers in the definition of v rather than a function? How about a sum type of two numbers?
 
-5. Using just lambda expressions, 0, s, and ^, what is the shortest program you can write to calculate a number at least 2 ** 1024 (the classical number size limit)?
+Exercise 5. Using just lambda expressions, 0, s, and ^, what is the shortest program you can write to calculate a number at least 2 ** 1024 (the classical number size limit)?
 
-6. How would you define bitwise operators on numbers in Mini-Lambda? Is there a limit to how efficiently you can do such operations?
+Exercise 6. How would you define bitwise operators on numbers in Mini-Lambda? Is there a limit to how efficiently you can do such operations?

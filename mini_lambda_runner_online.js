@@ -1,3 +1,7 @@
+var log = function (x) {
+	document.getElementById('c').innerHTML += x + '<br/>';
+}
+
 var main = function () {
 	let input = document.getElementById('a').value;
 	try {
@@ -5,7 +9,11 @@ var main = function () {
 		for (let i of input.split('\n')) {
 			let e = execute(i);
 			if (e !== null) {
-				document.getElementById('c').innerHTML += e[0] + '<br/>' + e[1] + '<br/>';
+				if (e[0] !== null) {
+					log(e[0]);
+				}
+				log(e[1]);
+				log(e[2]);
 			}
 		}
 	} catch (e) {

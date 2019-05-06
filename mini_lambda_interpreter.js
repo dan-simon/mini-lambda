@@ -946,7 +946,7 @@ var execute = function (x) {
     types[name] = rec_rem_star(h);
     fns[name] = c;
   }
-  return [print_type_tree(h), value_string(c), c];
+  return [name, print_type_tree(h), value_string(c), c];
 }
 
 // what we allow outside access to

@@ -13,7 +13,10 @@ var main = function () {
 			for (let i of data.split('\n')) {
 				var res = execute(i);
 				if (res !== null) {
-					var [type, value_string, real_value] = res;
+					var [name, type, value_string, real_value] = res;
+					if (name !== null) {
+						console.log(name);
+					}
 					console.log(type);
 					console.log(value_string);
 				}

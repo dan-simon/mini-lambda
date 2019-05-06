@@ -12,7 +12,10 @@ var main = function () {
     try {
 			var res = execute(d);
 			if (res !== null) {
-				var [type, value_string, real_value] = res;
+				var [name, type, value_string, real_value] = res;
+				if (name !== null) {
+					console.log(name);
+				}
 				console.log(type);
 				console.log(value_string);
 			}
